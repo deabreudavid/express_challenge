@@ -1,113 +1,161 @@
-DROP TABLE IF EXISTS movies;
+const database = require("./database");
 
-CREATE TABLE movies (
-  id int primary key NOT NULL AUTO_INCREMENT,
-  title varchar(255) NOT NULL,
-  director varchar(255) NOT NULL,
-  year varchar(255) NOT NULL,
-  color varchar(255) NOT NULL,
-  duration int NOT NULL
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb3;
+const users = [
+{
+  id: 1,
+  firstname: 'John',
+  lastname: 'Doe',
+  email: 'john.doe@example.com',
+  city: 'Paris',
+  language: 'English'
+},
+{
+  id: 2,
+  firstname: 'Valeriy',
+  lastname: 'Appius',
+  email: 'valeriy.appius@example.com',
+  city: 'Moscow',
+  language: 'Russian'
+},
+{
+  id: 3,
+  firstname: 'Ralf',
+  lastname: 'Geronimo',
+  email: 'ralf.geronimo@example.com',
+  city: 'New York',
+  language: 'Italian'
+},
+{
+  id: 4,
+  firstname: 'Maria',
+  lastname: 'Iskandar',
+  email: 'maria.iskandar@example.com',
+  city: 'New York',
+  language: 'German'
+},
+{
+  id: 5,
+  firstname: 'Jane',
+  lastname: 'Doe',
+  email: 'jane.doe@example.com',
+  city: 'London',
+  language: 'English'
+},
+{
+  id: 6,
+  firstname: 'Johanna',
+  lastname: 'Martino',
+  email: 'johanna.martino@example.com',
+  city: 'Milan',
+  language: 'Spanish'
+}
+];
 
-INSERT INTO
-  movies (title, director, year, color, duration)
-VALUES
-  (
-    'Citizen Kane',
-    'Orson Wells',
-    '1941',
-    '0',
-    120
-  ),
-  (
-    'The Godfather',
-    'Francis Ford Coppola',
-    '1972',
-    '1',
-    180
-  ),
-  (
-    'Pulp Fiction',
-    'Quentin Tarantino',
-    '1994',
-    '1',
-    180
-  ),
-  (
-    'Apocalypse Now',
-    'Francis Ford Coppola',
-    '1979',
-    '1',
-    150
-  ),
-  (
-    '2001 a space odyssey',
-    'Stanley Kubrick',
-    '1968',
-    '1',
-    160
-  ),
-  (
-    'The Dark Knight',
-    'Christopher Nolan',
-    '2008',
-    '1',
-    150
-  );
+const getUsers = (req, res) => {
+  database
+  .query("SELECT * FROM users")
+  .then(([users]) => {
+    res.json(users)
+  })
+  .catch((err) => {
+    console.error(err);
+    res.status(500).send("Error")
+  });
+};
 
-DROP TABLE IF EXISTS users;
+const getUserById = (req, res) => {
+    const id = parseInt(req.params.id);
 
-CREATE TABLE users (
-    id int primary key NOT NULL AUTO_INCREMENT,
-    firstname varchar(255) NOT NULL,
-    lastname varchar(255) NOT NULL,
-    email varchar(255) UNIQUE NOT NULL,
-    city varchar(255) DEFAULT NULL,
-    language varchar(255) DEFAULT NULL
-) ENGINE = InnoDB DEFAULT CHARSET = utf8;
+    database
+    .query("SELECT * FROM users WHERE id = ?", [id])
+    .then(([users]) => {
+        if(users[0] != null){
+            res.json(users[0]);
+        } else {
+            res.status(404).send("Not found");
+        }
+    }
+    )
+    .catch((err) =>{
+        console.error(err)
+        res.status(500).send("Error retrieving database");
+    })
 
-INSERT INTO
-  users (firstname, lastname, email, city, language)
-VALUES
-  (
-    'John',
-    'Doe',
-    'john.doe@example.com',
-    'Paris',
-    'English'
-  ),
-  (
-    'Valeriy',
-    'Appius',
-    'valeriy.appius@example.com',
-    'Moscow',
-    'Russian'
-  ),
-  (
-    'Ralf',
-    'Geronimo',
-    'ralf.geronimo@example.com',
-    'New York',
-    'Italian'
-  ),
-  (
-    'Maria',
-    'Iskandar',
-    'maria.iskandar@example.com',
-    'New York',
-    'German'
-  ),
-  (
-    'Jane',
-    'Doe',
-    'jane.doe@example.com',
-    'London',
-    'English'
-  ),
-  (
-    'Johanna',
-    'Martino',
-    'johanna.martino@example.com',
-    'Milan',
-    'Spanish'
-  );
+};
+
+const getUser = (req, res) => {
+    database
+      .query("SELECT * FROM users")
+      .then(([users]) => {
+        res.json(users);
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send("Error retrieving data from database");
+      });
+  }
+
+  const postUsers = (req, res) => {
+    const { firstname, lastname, email, city, language } = req.body;
+    database
+    .query(
+      "INSERT INTO users(firstname, lastname, email, city, language) VALUES (?, ?, ?, ?, ?)",
+      [firstname, lastname, email, city, language]
+    )
+    .then(([result]) =>{
+      res.location(`/api/users/${result.insertId}`).sendStatus(201);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send("Error saving users");
+    })
+  }
+
+  const updateUsers = (req, res) => {
+    const id = parseInt(req.params.id);
+    const { firstname, lastname, email, city, language } = req.body;
+
+    database
+    .query(
+      "UPDATE users SET firstname = ?, lastname = ?, email = ?, city = ?, language = ? WHERE id = ?",
+      [firstname, lastname, email, city, language, id]
+    )
+    .then(([result]) => {
+      if(result.affectedRows === 0){
+        res.status(404).send("Not found")
+      } else {
+        res.sendStatus(204);
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send("Error change users")
+    })
+  }
+
+  const deleteUsers = (req, res) => {
+    const id = parseInt(req.params.id);
+
+    database
+    .query("DELETE FROM users WHERE id = ?", [id])
+    .then(([result]) => {
+      if(result.affectedRows === 0) {
+        res.status(404).send("Not found");
+      } else {
+        res.sendStatus(204)
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send("Error deleting the user")
+    })
+  }
+
+module.exports = {
+    getUsers,
+    getUserById,
+    getUser,
+    postUsers,
+    updateUsers,
+    deleteUsers,
+};
